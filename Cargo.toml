@@ -1,0 +1,16 @@
+[package]
+name = "graphing_language"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ariadne = "0.5.1"
+bpaf = "0.9.20"
+chumsky = { version = "0.10.1", features = ["pratt"] }
+crossterm = "0.29.0"
+either = "1.15.0"
+logos = "0.15.1"
+ordered-float = "5.0.0"
+salsa = "0.23.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
