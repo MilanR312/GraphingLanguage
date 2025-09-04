@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use chumsky::{input::ValueInput, prelude::*};
 use crate::{lexer::Token, spanned::Span};
 
@@ -37,3 +39,9 @@ impl<'db> TypeId<'db> {
             .map(|x| Self::new(db, x))
     }
 }
+#[salsa::interned(debug)]
+pub struct BlockId<'db> {
+    #[returns(ref)]
+    pub id: u64
+}
+

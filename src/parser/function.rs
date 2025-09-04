@@ -2,17 +2,21 @@ use chumsky::{input::ValueInput, prelude::*};
 
 use crate::{ids::FunctionId, lexer::Token, spanned::{Span, Spanned, SpannedParser}};
 
-use super::{expression::Expression, pattern::Pattern, ty::Type};
+use super::{expression::Expression, pattern::Pattern, statement::Statement, ty::Type};
 
 #[salsa::tracked(debug)]
 pub struct Function<'db> {
     pub name: Spanned<FunctionId<'db>>,
     pub args: Vec<(Spanned<Pattern<'db>>, Option<Spanned<Type<'db>>>)>,
     pub return_type: Option<Spanned<Type<'db>>>,
+    #[returns(ref)]
     pub body: Spanned<Expression<'db>>,
 }
 impl<'db> Function<'db> {
-    pub fn parser<'src, I: ValueInput<'src, Span = Span, Token = Token>>(db: &'db dyn salsa::Database) -> impl Parser<'src, I, Self> + Clone
+    pub fn parser<'src, I: ValueInput<'src, Span = Span, Token = Token>>(
+        db: &'db dyn salsa::Database,
+        statement_parser: impl Parser<'src, I, Statement<'db>> + 'src + Clone
+    ) -> impl Parser<'src, I, Self> + Clone
     where 'db: 'src
     {
         let name = FunctionId::parser(db).spanned();
@@ -39,7 +43,7 @@ impl<'db> Function<'db> {
             .then(args)
             .then(return_type)
             .then_ignore(just(Token::Equals))
-            .then(Expression::parser(db).spanned())
+            .then(Expression::parser(db, statement_parser).spanned())
             .then_ignore(just(Token::Semicolon))
             .map(|(((name, args), rty), body)| Self::new(db, name, args, rty, body))
 
@@ -56,7 +60,8 @@ mod tests {
     fn test_compile_function<'db>(db: &'db dyn salsa::Database, ls: LexedSource<'db>) -> Function<'db> {
         let tokenstream = ls.tokens(db);
         let stream = Stream::from_iter(tokenstream.to_owned().into_iter());
-        Function::parser(db).parse(stream).unwrap()
+        let sp = Statement::parser(db);
+        Function::parser(db, sp).parse(stream).unwrap()
     }
 
     #[test]

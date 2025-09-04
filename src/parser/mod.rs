@@ -1,6 +1,6 @@
 use chumsky::{input::ValueInput, prelude::*};
 
-use crate::{lexer::Token, spanned::Span};
+use crate::{lexer::{LexedSource, Token}, spanned::Span, stream::Stream};
 
 
 pub mod literal;
@@ -30,4 +30,12 @@ impl<'db> Program<'db> {
             .collect::<Vec<_>>()
             .map(|x| Self::new(db, x))
     }
+}
+
+#[salsa::tracked]
+pub fn compile_tokenstream<'db>(db: &'db dyn salsa::Database, tokenstream: LexedSource<'db>) -> Program<'db> {
+    println!("compiling");
+    let tokenstream = tokenstream.tokens(db);
+    let stream = Stream::from_iter(tokenstream.to_owned().into_iter());
+    Program::parser(db).parse(stream).unwrap()
 }
